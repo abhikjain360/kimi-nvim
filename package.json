@@ -9,15 +9,23 @@
   "scripts": {
     "build": "tsup src/mcp-server.ts --out-dir dist --format cjs --target node20",
     "dev": "tsup src/mcp-server.ts --out-dir dist --format cjs --target node20 --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint src",
+    "lint:fix": "oxlint src --fix",
+    "format": "oxfmt --write src",
+    "format:check": "oxfmt --check src"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "neovim": "^5.0.0",
-    "zod": "^3.23.0"
+    "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@rslint/tsgo": "^0.5.1",
     "@types/node": "^20.0.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260502.1",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0"
   },
