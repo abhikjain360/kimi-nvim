@@ -32,24 +32,24 @@ if (!nvimSocket) {
 // ---------------------------------------------------------------------------
 
 // Prevent the neovim package from hijacking console.log (would break MCP stdio)
-const nvim: NeovimClient = attach({
-    socket: nvimSocket,
-    options: {
-        logger: {
-            debug: () => {},
-            info: () => {},
-            warn: (...msgs: unknown[]) => console.warn(...msgs),
-            error: (...msgs: unknown[]) => console.error(...msgs),
-        } as any,
+const base = {} as import("winston").Logger;
+const logger = Object.assign(base, {
+    level: "silent" as const,
+    debug: () => logger,
+    info: () => logger,
+    warn: (...msgs: unknown[]) => {
+        console.warn(...msgs);
+        return logger;
+    },
+    error: (...msgs: unknown[]) => {
+        console.error(...msgs);
+        return logger;
     },
 });
 
-process.on("exit", () => {
-    try {
-        nvim.quit();
-    } catch {
-        // ignore
-    }
+const nvim: NeovimClient = attach({
+    socket: nvimSocket,
+    options: { logger },
 });
 
 // ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ async function findBufferByPath(filePath: string): Promise<Buffer | null> {
 
 async function readFileFromDisk(filePath: string): Promise<string> {
     try {
-        return fs.readFileSync(filePath, "utf-8");
+        return await fs.promises.readFile(filePath, "utf-8");
     } catch {
         return "";
     }
@@ -102,6 +102,8 @@ function severityToString(severity: number): string {
 const mcpServer = new McpServer({
     name: "kimi-nvim",
     version: "0.1.0",
+    description:
+        "MCP server to provide more context about what user has currently opened in their neovim editor so agents can easily understand what the user is talking about",
 });
 
 mcpServer.registerTool(
