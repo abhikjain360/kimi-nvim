@@ -1,0 +1,27 @@
+{
+  "name": "kimi-nvim-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for kimi-nvim — exposes Neovim context to kimi-cli",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "kimi-nvim-mcp": "bin/kimi-nvim-mcp"
+  },
+  "scripts": {
+    "build": "tsup src/mcp-server.ts --out-dir dist --format cjs --target node20",
+    "dev": "tsup src/mcp-server.ts --out-dir dist --format cjs --target node20 --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "neovim": "^5.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
