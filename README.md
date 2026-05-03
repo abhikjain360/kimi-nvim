@@ -1,6 +1,6 @@
 # kimi-nvim
 
-Neovim plugin for [kimi-cli](https://github.com/your-org/kimi-cli) — embeds kimi in a `:terminal` buffer and exposes editor context via MCP.
+Neovim plugin for **kimi-cli** — embeds kimi in a `:terminal` buffer and exposes editor context via MCP.
 
 ## Features
 
@@ -12,7 +12,7 @@ Neovim plugin for [kimi-cli](https://github.com/your-org/kimi-cli) — embeds ki
 ## Requirements
 
 - Neovim >= 0.8.0
-- [kimi-cli](https://github.com/your-org/kimi-cli) installed and available in `$PATH`
+- **kimi-cli** installed and available in `$PATH`
 - Node.js >= 20 (for the MCP server)
 
 ## Installation
@@ -21,7 +21,7 @@ Neovim plugin for [kimi-cli](https://github.com/your-org/kimi-cli) — embeds ki
 
 ```lua
 {
-  "yourname/kimi-nvim",
+  "abhikjain360/kimi-nvim",
   build = "npm install && npm run build", -- compiles the TypeScript MCP server
   config = function()
     require("kimi").setup()
@@ -34,7 +34,7 @@ If you prefer to manage the build yourself, run `npm install && npm run build` i
 ### vim-plug
 
 ```vim
-Plug 'yourname/kimi-nvim', { 'do': 'npm install && npm run build' }
+Plug 'abhikjain360/kimi-nvim', { 'do': 'npm install && npm run build' }
 ```
 
 Then in your Lua config:
@@ -76,6 +76,7 @@ require("kimi").setup({
   terminal_cmd = "kimi",           -- command to run in the terminal
   mcp_server_path = nil,           -- path to dist/mcp-server.js (auto-detected by default)
   keymaps = true,                  -- enable default keymaps
+  mention_format = "@{file}:{start}-{end}", -- format for @mentions
 })
 ```
 
