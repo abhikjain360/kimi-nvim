@@ -17,19 +17,31 @@ Neovim plugin for **kimi-cli** — embeds kimi in a `:terminal` buffer and expos
 
 ## Installation
 
+The plugin **automatically builds the MCP server on first use** (when you run `:Kimi` for the first time). You can also pre-build during installation to avoid the delay.
+
 ### lazy.nvim
 
 ```lua
 {
   "abhikjain360/kimi-nvim",
-  build = "npm install && npm run build", -- compiles the TypeScript MCP server
+  build = "npm install && npm run build", -- optional: pre-build so first :Kimi is instant
   config = function()
     require("kimi").setup()
   end,
 }
 ```
 
-If you prefer to manage the build yourself, run `npm install && npm run build` in the plugin directory after cloning.
+Or with auto-setup (no `config` needed):
+
+```lua
+{
+  "abhikjain360/kimi-nvim",
+  build = "npm install && npm run build",
+  init = function()
+    vim.g.kimi_nvim_auto_setup = true
+  end,
+}
+```
 
 ### vim-plug
 
@@ -84,11 +96,21 @@ require("kimi").setup({
 
 ### How it works
 
-1. You run `:Kimi` — the plugin writes a temporary MCP config file pointing to the bundled TypeScript MCP server.
+1. You run `:Kimi` — the plugin builds the MCP server if needed, then writes a temporary MCP config file.
 2. A terminal buffer opens running `kimi --mcp-config-file /path/to/config.json`.
 3. kimi-cli spawns the MCP server, which connects back to Neovim via msgpack-RPC.
 4. When kimi needs context, it calls MCP tools like `get_current_file`, `get_open_buffers`, `get_current_selection`, etc.
 5. When you select code and press `<leader>km`, an `@file:line-line` reference is inserted into the terminal buffer.
+
+### Troubleshooting
+
+Run `:checkhealth kimi-nvim` to verify:
+
+- Neovim version (>= 0.8.0)
+- Node.js availability
+- kimi-cli availability
+- MCP server bundle is built
+- `require("kimi").setup()` has been called
 
 ## Architecture
 

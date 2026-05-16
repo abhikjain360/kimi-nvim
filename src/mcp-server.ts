@@ -99,24 +99,48 @@ function severityToString(severity: number): string {
 // MCP Server
 // ---------------------------------------------------------------------------
 
-const mcpServer = new McpServer({
-    name: "kimi-nvim",
-    version: "0.1.0",
-    description:
-        "MCP server to provide more context about what user has currently opened in their neovim editor so agents can easily understand what the user is talking about",
-});
+const mcpServer = new McpServer(
+    {
+        name: "kimi-nvim",
+        version: "0.1.0",
+        description:
+            "MCP server to provide more context about what user has currently opened in their neovim editor so agents can easily understand what the user is talking about",
+    },
+    {
+        instructions:
+            "You are assisting a Neovim user through an MCP server. " +
+            "When the user refers to 'this file', 'the current file', or asks about something being wrong, " +
+            "they are almost always talking about a source code file visible in an editor window — NOT the terminal buffer running this conversation. " +
+            "Always check get_visible_buffers first to see what files are currently on screen. " +
+            "If the user is focused in the terminal buffer, get_current_file returns the alternate (previously focused) file instead of the terminal. " +
+            "Terminal buffers are always excluded from buffer listings.",
+    }
+);
 
 mcpServer.registerTool(
     "get_current_selection",
     {
         description:
             "Get the current visual selection or cursor position in Neovim. " +
+            "If the user is focused in the terminal buffer running this conversation, " +
+            "this returns the ALTERNATE file path with an empty selection, because the terminal has no meaningful editor selection. " +
             "Returns the selected text, file path, and line/character range.",
         inputSchema: {},
     },
     async () => {
-        const buf: Buffer = await nvim.buffer;
-        const filePath: string = await nvim.call("bufname", [buf.id]);
+        let buf: Buffer = await nvim.buffer;
+        let filePath: string = await nvim.call("bufname", [buf.id]);
+        const buftype: string = (await buf.getOption("buftype")) as string;
+        const inTerminal = buftype === "terminal";
+
+        if (inTerminal) {
+            const altBufnr: number = await nvim.call("bufnr", ["#"]);
+            if (altBufnr > 0 && altBufnr !== buf.id) {
+                buf = new (nvim.Buffer as any)(nvim, altBufnr);
+                filePath = await nvim.call("bufname", [buf.id]);
+            }
+        }
+
         const mode: string = await nvim.call("mode", []);
         const isVisual = mode === "v" || mode === "V" || mode === "\x16";
 
@@ -127,7 +151,7 @@ mcpServer.registerTool(
         let endCharacter = 0;
         let isEmpty = true;
 
-        if (isVisual && filePath) {
+        if (isVisual && filePath && !inTerminal) {
             const startMark: [number, number, number, number] = await nvim.call("getpos", ["'<"]);
             const endMark: [number, number, number, number] = await nvim.call("getpos", ["'>"]);
 
@@ -162,11 +186,13 @@ mcpServer.registerTool(
                 endCharacter = 0;
             }
         } else {
-            const cursor: [number, number, number, number] = await nvim.call("getpos", ["."]);
-            startLine = cursor[1] - 1;
-            startCharacter = cursor[2] - 1;
-            endLine = startLine;
-            endCharacter = startCharacter;
+            if (!inTerminal) {
+                const cursor: [number, number, number, number] = await nvim.call("getpos", ["."]);
+                startLine = cursor[1] - 1;
+                startCharacter = cursor[2] - 1;
+                endLine = startLine;
+                endCharacter = startCharacter;
+            }
             isEmpty = true;
         }
 
@@ -194,12 +220,22 @@ mcpServer.registerTool(
     {
         description:
             "Get metadata about the currently active buffer in Neovim. " +
-            "Returns file path, name, language, and modification status.",
+            "If the user is focused in the terminal buffer running this conversation, " +
+            "this returns the ALTERNATE file (the file they were editing before opening the terminal) instead. " +
+            "Use this, along with get_visible_buffers, to determine which file the user means when they ask about 'this file'.",
         inputSchema: {},
     },
     async () => {
-        const buf: Buffer = await nvim.buffer;
-        const filePath: string = await nvim.call("bufname", [buf.id]);
+        let buf: Buffer = await nvim.buffer;
+        let filePath: string = await nvim.call("bufname", [buf.id]);
+        const buftype: string = (await buf.getOption("buftype")) as string;
+        if (buftype === "terminal") {
+            const altBufnr: number = await nvim.call("bufnr", ["#"]);
+            if (altBufnr > 0 && altBufnr !== buf.id) {
+                buf = new (nvim.Buffer as any)(nvim, altBufnr);
+                filePath = await nvim.call("bufname", [buf.id]);
+            }
+        }
         const modified: boolean = (await buf.getOption("modified")) as boolean;
         const filetype: string = (await buf.getOption("filetype")) as string;
         const fileName = filePath.split("/").pop() || "";
@@ -225,21 +261,29 @@ mcpServer.registerTool(
     {
         description:
             "List all open (listed) buffers in Neovim with their file paths. " +
-            "Useful to know which files the user is currently editing.",
+            "Includes a flag indicating whether each buffer is currently visible in a window. " +
+            "The terminal buffer running this conversation is always excluded. " +
+            "Useful to know which files the user has open in their editing session.",
         inputSchema: {},
     },
     async () => {
         const bufs: Buffer[] = await nvim.buffers;
         const currentBuf: Buffer = await nvim.buffer;
+        const wins: Array<{ bufnr: number }> = await nvim.call("getwininfo", []);
+        const visibleBufIds = new Set(wins.map((w) => w.bufnr));
         const buffers: Array<{
             filePath: string;
             isModified: boolean;
             isActive: boolean;
+            isVisible: boolean;
         }> = [];
 
         for (const buf of bufs) {
             const listed: boolean = (await buf.getOption("buflisted")) as boolean;
             if (!listed) continue;
+
+            const buftype: string = (await buf.getOption("buftype")) as string;
+            if (buftype === "terminal") continue;
 
             const name: string = await nvim.call("bufname", [buf.id]);
             if (!name) continue;
@@ -249,6 +293,7 @@ mcpServer.registerTool(
                 filePath: name,
                 isModified: modified,
                 isActive: buf.id === currentBuf.id,
+                isVisible: visibleBufIds.has(buf.id),
             });
         }
 
@@ -257,6 +302,58 @@ mcpServer.registerTool(
                 {
                     type: "text" as const,
                     text: JSON.stringify({ buffers }),
+                },
+            ],
+        };
+    },
+);
+
+mcpServer.registerTool(
+    "get_visible_buffers",
+    {
+        description:
+            "Get all buffers currently visible in Neovim windows (i.e., on screen). " +
+            "This is the BEST tool to determine which file the user means when they say 'this file' or 'the current file'. " +
+            "Excludes the terminal buffer running this conversation. " +
+            "Returns file path, name, language, modification status, and window ID for each visible buffer.",
+        inputSchema: {},
+    },
+    async () => {
+        const wins: Array<{ winid: number; bufnr: number }> = await nvim.call("getwininfo", []);
+        const visibleBuffers: Array<{
+            filePath: string;
+            fileName: string;
+            languageId: string;
+            isModified: boolean;
+            windowId: number;
+        }> = [];
+
+        for (const win of wins) {
+            const buf = new (nvim.Buffer as any)(nvim, win.bufnr);
+            const buftype: string = (await buf.getOption("buftype")) as string;
+            if (buftype === "terminal") continue;
+
+            const listed: boolean = (await buf.getOption("buflisted")) as boolean;
+            const name: string = await nvim.call("bufname", [buf.id]);
+            if (!listed && !name) continue;
+
+            const modified: boolean = (await buf.getOption("modified")) as boolean;
+            const filetype: string = (await buf.getOption("filetype")) as string;
+
+            visibleBuffers.push({
+                filePath: name,
+                fileName: name.split("/").pop() || "",
+                languageId: filetype,
+                isModified: modified,
+                windowId: win.winid,
+            });
+        }
+
+        return {
+            content: [
+                {
+                    type: "text" as const,
+                    text: JSON.stringify({ visibleBuffers }),
                 },
             ],
         };

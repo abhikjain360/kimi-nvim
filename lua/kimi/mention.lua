@@ -25,7 +25,9 @@ function M.send_visual_selection()
     rel_file = file:sub(#cwd + 2) -- skip cwd + /
   end
 
-  local mention = string.format("@%s:%d-%d", rel_file, start_line, end_line)
+  local config = require("kimi").config or {}
+  local fmt = config.mention_format or "@{file}:{start}-{end}"
+  local mention = fmt:gsub("{file}", rel_file):gsub("{start}", tostring(start_line)):gsub("{end}", tostring(end_line))
 
   local term = require("kimi.terminal")
   if not term.is_open() then
@@ -52,7 +54,9 @@ function M.send_file(path)
     rel_file = path:sub(#cwd + 2)
   end
 
-  local mention = string.format("@%s", rel_file)
+  local config = require("kimi").config or {}
+  local fmt = (config.mention_format or "@{file}:{start}-{end}"):gsub(":{start}-{end}", "")
+  local mention = fmt:gsub("{file}", rel_file)
 
   local term = require("kimi.terminal")
   if not term.is_open() then
