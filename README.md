@@ -1,6 +1,6 @@
 # kimi-nvim
 
-Neovim plugin for **kimi-cli** — embeds kimi in a `:terminal` buffer and exposes editor context via MCP.
+Neovim plugin for **kimi-cli** — embeds kimi in a `:terminal` buffer and exposes editor context via MCP. This is vibecoded slop that seems to work, no guarantee for anything.
 
 ## Features
 
@@ -38,6 +38,7 @@ Plug 'abhikjain360/kimi-nvim', { 'do': 'npm install && npm run build' }
 ```
 
 Then in your Lua config:
+
 ```lua
 require("kimi").setup()
 ```
@@ -46,25 +47,26 @@ require("kimi").setup()
 
 ### Commands
 
-| Command | Mode | Description |
-|---------|------|-------------|
-| `:Kimi` | Normal | Open or toggle the kimi terminal. Generates MCP config and starts kimi with it. |
-| `:KimiClose` | Normal | Close the kimi terminal and clean up MCP config. |
-| `:KimiRestart` | Normal | Restart the terminal and MCP config. |
-| `:KimiMention` | Visual | Send an `@file:line-line` reference of the visual selection to the terminal. |
+| Command                   | Mode   | Description                                                                           |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `:Kimi`                   | Normal | Open or toggle the kimi terminal. Generates MCP config and starts kimi with it.       |
+| `:KimiClose`              | Normal | Close the kimi terminal and clean up MCP config.                                      |
+| `:KimiRestart`            | Normal | Restart the terminal and MCP config.                                                  |
+| `:KimiMention`            | Visual | Send an `@file:line-line` reference of the visual selection to the terminal.          |
 | `:KimiMentionFile [path]` | Normal | Mention an entire file (or current file if no argument). Supports `<Tab>` completion. |
 
 ### Default Keymaps
 
 Set `keymaps = true` in `setup()` (default) to enable:
 
-| Keymap | Mode | Action |
-|--------|------|--------|
-| `<leader>kk` | Normal | Toggle `:Kimi` |
-| `<leader>km` | Visual | `:KimiMention` |
+| Keymap       | Mode   | Action             |
+| ------------ | ------ | ------------------ |
+| `<leader>kk` | Normal | Toggle `:Kimi`     |
+| `<leader>km` | Visual | `:KimiMention`     |
 | `<leader>kf` | Normal | `:KimiMentionFile` |
 
 Disable default keymaps:
+
 ```lua
 require("kimi").setup({ keymaps = false })
 ```
@@ -100,14 +102,14 @@ Neovim
 
 ## MCP Tools exposed to kimi
 
-| Tool | Purpose |
-|------|---------|
-| `get_current_selection` | Current visual selection or cursor position |
-| `get_current_file` | Metadata about the active buffer |
-| `get_open_buffers` | List of all open (listed) buffers |
-| `get_buffer_content` | Full or partial content of a buffer (includes unsaved changes) |
-| `get_diagnostics` | LSP diagnostics for a file |
-| `open_file` | Open/navigate to a file in Neovim |
+| Tool                    | Purpose                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `get_current_selection` | Current visual selection or cursor position                    |
+| `get_current_file`      | Metadata about the active buffer                               |
+| `get_open_buffers`      | List of all open (listed) buffers                              |
+| `get_buffer_content`    | Full or partial content of a buffer (includes unsaved changes) |
+| `get_diagnostics`       | LSP diagnostics for a file                                     |
+| `open_file`             | Open/navigate to a file in Neovim                              |
 
 ## License
 
