@@ -20,6 +20,10 @@ function M.start(opts)
     error("kimi-nvim: Neovim socket unavailable. Start nvim with --listen")
   end
 
+  if not require("kimi.build").ensure_built() then
+    error("kimi-nvim: MCP server build failed")
+  end
+
   local script_path = opts.script_path or get_plugin_root() .. "/dist/mcp-server.js"
 
   config_path = vim.fn.stdpath("cache") .. "/kimi-nvim-mcp.json"
